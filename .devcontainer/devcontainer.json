@@ -1,0 +1,11 @@
+{
+  "image": "asciidoctor/docker-asciidoctor:latest",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "asciidoctor.asciidoctor-vscode",
+        "ms-vscode.makefile-tools"
+      ]
+    }
+  }
+}

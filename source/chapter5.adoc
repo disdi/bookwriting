@@ -1,0 +1,211 @@
+== Chapter 5: Programming Fractals
+
+=== Introduction
+
+((Fractals)) are complex patterns that are self-similar across different scales. They are fascinating both in their mathematical properties and their visual appeal. In this chapter, we will explore how to program fractals using Elixir and Go, focusing on some of the most famous fractal patterns such as the Mandelbrot set and the Sierpinski triangle.
+
+=== The Mandelbrot Set
+
+The ((Mandelbrot)) set is a set of complex numbers that produces a distinctive and famous fractal shape. The set is defined by iterating the function:
+
+[stem]
+++++
+z_{n+1} = z_n^2 + c
+++++
+
+==== Plotting the Mandelbrot Set in Elixir
+
+Let's start with a basic ((Elixir)) program to plot the Mandelbrot set.
+
+[source,elixir]
+----
+defmodule Mandelbrot do
+  def mandelbrot(c, max_iter) do
+    iterate(c, 0, 0, max_iter)
+  end
+
+  defp iterate(_c, _z, n, max_iter) when n >= max_iter, do: n
+  defp iterate(c, z, n, max_iter) when abs(z) > 2, do: n
+  defp iterate(c, z, n, max_iter) do
+    iterate(c, z*z + c, n + 1, max_iter)
+  end
+
+  def mandelbrot_set(xmin, xmax, ymin, ymax, width, height, max_iter) do
+    for x <- 0..(width-1), y <- 0..(height-1) do
+      r = xmin + (xmax - xmin) * x / width
+      i = ymin + (ymax - ymin) * y / height
+      c = Complex.new(r, i)
+      {x, y, mandelbrot(c, max_iter)}
+    end
+  end
+end
+
+plot = Mandelbrot.mandelbrot_set(-2.0, 1.0, -1.5, 1.5, 800, 800, 256)
+:Gnuplot.plot(plot)
+----
+
+==== Plotting the Mandelbrot Set in Go
+
+Here's a ((Go)) program to plot the Mandelbrot set.
+
+[source,go]
+----
+package main
+
+import (
+	"image"
+	"image/color"
+	"image/png"
+	"math/cmplx"
+	"os"
+)
+
+func mandelbrot(c complex128, maxIter int) int {
+	z := complex(0, 0)
+	for n := 0; n < maxIter; n++ {
+		z = z*z + c
+		if cmplx.Abs(z) > 2 {
+			return n
+		}
+	}
+	return maxIter
+}
+
+func mandelbrotSet(xmin, xmax, ymin, ymax float64, width, height, maxIter int) *image.Gray {
+	img := image.NewGray(image.Rect(0, 0, width, height))
+	for py := 0; py < height; py++ {
+		for px := 0; px < width; px++ {
+			x := float64(px)/float64(width)*(xmax-xmin) + xmin
+			y := float64(py)/float64(height)*(ymax-ymin) + ymin
+			c := complex(x, y)
+			m := mandelbrot(c, maxIter)
+			img.SetGray(px, py, color.Gray{255 - uint8(m)})
+		}
+	}
+	return img
+}
+
+func main() {
+	xmin, xmax, ymin, ymax := -2.0, 1.0, -1.5, 1.5
+	width, height := 800, 800
+	maxIter := 256
+
+	img := mandelbrotSet(xmin, xmax, ymin, ymax, width, height, maxIter)
+
+	file, _ := os.Create("mandelbrot.png")
+	defer file.Close()
+	png.Encode(file, img)
+}
+----
+
+=== The Sierpinski Triangle
+
+The Sierpinski triangle is a fractal that is formed by recursively subdividing an equilateral triangle into smaller equilateral triangles.
+
+==== Plotting the Sierpinski Triangle in Elixir
+
+Here is an Elixir program to plot the Sierpinski triangle using recursion.
+
+[source,elixir]
+----
+defmodule Sierpinski do
+  def draw_triangle(x, y, size, depth, canvas) when depth == 0 do
+    triangle = [{x, y}, {x + size / 2, y + size * :math.sqrt(3) / 2}, {x + size, y}]
+    :egd.filled_polygon(canvas, triangle, :egd.color(:black))
+  end
+
+  def draw_triangle(x, y, size, depth, canvas) do
+    draw_triangle(x, y, size / 2, depth - 1, canvas)
+    draw_triangle(x + size / 2, y, size / 2, depth - 1, canvas)
+    draw_triangle(x + size / 4, y + size * :math.sqrt(3) / 4, size / 2, depth - 1, canvas)
+  end
+end
+
+{:ok, canvas} = :egd.create(800, 800)
+Sierpinski.draw_triangle(0, 0, 800, 5, canvas)
+:image.create(:png, canvas)
+----
+
+==== Plotting the Sierpinski Triangle in Go
+
+Here is a Go program to plot the Sierpinski triangle using recursion.
+
+[source,go]
+----
+package main
+
+import (
+	"image"
+	"image/color"
+	"image/png"
+	"os"
+)
+
+func drawTriangle(img *image.Gray, x, y, size, depth int) {
+	if depth == 0 {
+		drawFilledPolygon(img, [][]int{{x, y}, {x + size / 2, y + int(float64(size) * 0.866)}, {x + size, y}}, 0)
+	} else {
+		drawTriangle(img, x, y, size / 2, depth - 1)
+		drawTriangle(img, x + size / 2, y, size / 2, depth - 1)
+		drawTriangle(img, x + size / 4, y + int(float64(size) * 0.866 / 2), size / 2, depth - 1)
+	}
+}
+
+func drawFilledPolygon(img *image.Gray, points [][]int, value uint8) {
+	for i := 0; i < len(points); i++ {
+		x0, y0 := points[i][0], points[i][1]
+		x1, y1 := points[(i + 1) % len(points)][0], points[(i + 1) % len(points)][1]
+		drawLine(img, x0, y0, x1, y1, value)
+	}
+}
+
+func drawLine(img *image.Gray, x0, y0, x1, y1 int, value uint8) {
+	dx := x1 - x0
+	dy := y1 - y0
+	steps := max(abs(dx), abs(dy))
+
+	if steps == 0 {
+		img.SetGray(x0, y0, color.Gray{value})
+		return
+	}
+
+	for i := 0; i <= steps; i++ {
+		x := x0 + i * dx / steps
+		y := y0 + i * dy / steps
+		img.SetGray(x, y, color.Gray{value})
+	}
+}
+
+func main() {
+	width, height := 800, 800
+	img := image.NewGray(image.Rect(0, 0, width, height))
+	drawTriangle(img, 0, 0, width, 5)
+
+	file, _ := os.Create("sierpinski.png")
+	defer file.Close()
+	png.Encode(file, img)
+}
+----
+
+=== Conclusion
+
+Fractals are an excellent way to understand the beauty and complexity of mathematical patterns. By programming these patterns, we not only appreciate their aesthetic appeal but also gain insights into their mathematical properties.
+
+=== Further Reading
+
+For more information on fractals and programming, check out the following resources:
+
+* https://en.wikipedia.org/wiki/Mandelbrot_set[Mandelbrot Set - Wikipedia]
+* https://en.wikipedia.org/wiki/Sierpinski_triangle[Sierpinski Triangle - Wikipedia]
+
+=== References
+
+1. Mandelbrot, B. B. (1982). _The Fractal Geometry of Nature_. New York: W.H. Freeman and Company.
+2. Peitgen, H.-O., Jürgens, H., & Saupe, D. (1992). _Chaos and Fractals: New Frontiers of Science_. New York: Springer.
+
+=== Appendix
+
+==== Image and Code Credits
+
+* Mandelbrot Set: Code adapted from various fractal tutorials in Elixir and Go.
+* Sierpinski Triangle: Code adapted from various fractal tutorials in Elixir and Go.

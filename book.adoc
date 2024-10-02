@@ -1,0 +1,19 @@
+= Title
+Alexandra Thompson <name.lastname@foo.bar>
+:reproducible:
+:listing-caption: Listing
+:source-highlighter: rouge
+:toc:
+:toclevels: 2
+:doctype: book
+:partnums:
+:icons: font
+:front-image: backgrounds/cover.png
+:back-image: backgrounds/back-cover.png
+:imagesdir: figures
+
+include::source/front_matter.adoc[]
+
+include::source/body.adoc[]
+
+include::source/back_matter.adoc[]
